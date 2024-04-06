@@ -1,0 +1,89 @@
+{
+  "teamLeaders": [
+    {
+      "id": 1,
+      "name": "Team Leader 1",
+      "points": 1000,
+      "mentors": [],
+      "sportsPersons": [],
+      "playersA": [],
+      "playersB": [],
+      "playersC": []
+    },
+    {
+      "id": 2,
+      "name": "Team Leader 2",
+      "points": 1000,
+      "mentors": [],
+      "sportsPersons": [],
+      "playersA": [],
+      "playersB": [],
+      "playersC": []
+    },
+    {
+      "id": 3,
+      "name": "Team Leader 3",
+      "points": 1000,
+      "mentors": [],
+      "sportsPersons": [],
+      "playersA": [],
+      "playersB": [],
+      "playersC": []
+    },
+    {
+      "id": 4,
+      "name": "Team Leader 4",
+      "points": 1000,
+      "mentors": [],
+      "sportsPersons": [],
+      "playersA": [],
+      "playersB": [],
+      "playersC": []
+    },
+    {
+      "id": 5,
+      "name": "Team Leader 5",
+      "points": 1000,
+      "mentors": [],
+      "sportsPersons": [],
+      "playersA": [],
+      "playersB": [],
+      "playersC": []
+    }
+  ],
+  "mentors": [
+    { "id": 1, "name": "Mentor 1" },
+    { "id": 2, "name": "Mentor 2" },
+    { "id": 3, "name": "Mentor 3" },
+    { "id": 4, "name": "Mentor 4" },
+    { "id": 5, "name": "Mentor 5" }
+  ],
+  "sportsPersons": [
+    { "id": 1, "name": "Sports Person 1" },
+    { "id": 2, "name": "Sports Person 2" },
+    { "id": 3, "name": "Sports Person 3" },
+    { "id": 4, "name": "Sports Person 4" },
+    { "id": 5, "name": "Sports Person 5" }
+  ],
+  "playersA": [
+    { "id": 1, "name": "Player A1", "points": 100 },
+    { "id": 2, "name": "Player A2", "points": 100 },
+    { "id": 3, "name": "Player A3", "points": 100 },
+    { "id": 4, "name": "Player A4", "points": 100 },
+    { "id": 5, "name": "Player A5", "points": 100 }
+  ],
+  "playersB": [
+    { "id": 6, "name": "Player B1", "points": 50 },
+    { "id": 7, "name": "Player B2", "points": 50 },
+    { "id": 8, "name": "Player B3", "points": 50 },
+    { "id": 9, "name": "Player B4", "points": 50 },
+    { "id": 10, "name": "Player B5", "points": 50 }
+  ],
+  "playersC": [
+    { "id": 11, "name": "Player C1", "points": 25 },
+    { "id": 12, "name": "Player C2", "points": 25 },
+    { "id": 13, "name": "Player C3", "points": 25 },
+    { "id": 14, "name": "Player C4", "points": 25 },
+    { "id": 15, "name": "Player C5", "points": 25 }
+  ]
+}

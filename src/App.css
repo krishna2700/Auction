@@ -1,0 +1,70 @@
+.app-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+.team-leaders-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.leader-card {
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding: 10px;
+  width: calc(33.33% - 20px);
+}
+
+.leader-card h2 {
+  font-size: 18px;
+  margin-bottom: 5px;
+}
+
+.player-list {
+  list-style: none;
+  padding: 0;
+  margin-top: 10px;
+}
+
+.player-list li {
+  margin-bottom: 5px;
+}
+
+.player-list .bid-over {
+  color: red;
+}
+
+.auction-controls {
+  margin-top: 20px;
+}
+
+.auction-controls button {
+  margin-right: 10px;
+  padding: 5px 10px;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.bid-over-players {
+  margin-top: 20px;
+}
+
+.bid-over-players h2 {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+
+.current-player {
+  margin-top: 20px;
+}
+
+.current-player h2 {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
