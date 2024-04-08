@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from "react";
 import data from "./data.json";
-import "./App.css"; // Import CSS file for styling
+import { Grid } from "@mui/material";
+import LeaderCard from "./LeaderCard";
+import AuctionControls from "./AuctionControls";
+import BidOverPlayers from "./BidOverPlayers";
+import PendingPlayers from "./PendingPlayers";
+import PlayerListDialog from "./PlayerListDialog";
+import CurrentPlayer from "./CurrentPlayer";
+import "./App.css";
 
 const App = () => {
   const [teamLeaders, setTeamLeaders] = useState([]);
@@ -9,26 +16,40 @@ const App = () => {
   const [currentBid, setCurrentBid] = useState(null);
   const [currentPlayerList, setCurrentPlayerList] = useState("playersA");
   const [bidOverPlayers, setBidOverPlayers] = useState([]);
+  const [showDialog, setShowDialog] = useState(false);
+  const [selectedLeader, setSelectedLeader] = useState(null);
+  const [prevBidderIndex, setPrevBidderIndex] = useState(null);
+  const [pendingPlayers, setPendingPlayers] = useState([]);
+  const [allPlayersAuctioned, setAllPlayersAuctioned] = useState(false);
 
   useEffect(() => {
     setTeamLeaders(
-      data.teamLeaders.map((leader) => {
-        const randomMentor =
-          data.mentors[Math.floor(Math.random() * data.mentors.length)];
-        const randomSportsPerson =
+      data.teamLeaders.map((leader) => ({
+        ...leader,
+        mentors: [
+          data.mentors[Math.floor(Math.random() * data.mentors.length)],
+        ],
+        sportsPersons: [
           data.sportsPersons[
             Math.floor(Math.random() * data.sportsPersons.length)
-          ];
-        return {
-          ...leader,
-          mentors: [randomMentor],
-          sportsPersons: [randomSportsPerson],
-          currentBid: null,
-          bidOverForPlayers: [],
-        };
-      })
+          ],
+        ],
+        currentBid: null,
+        bidOverForPlayers: [],
+      }))
     );
   }, []);
+
+  useEffect(() => {
+    const allPlayersAuctioned = teamLeaders.every((leader) => {
+      return (
+        leader.playersA.length === 0 &&
+        leader.playersB.length === 0 &&
+        leader.playersC.length === 0
+      );
+    });
+    setAllPlayersAuctioned(allPlayersAuctioned);
+  }, [teamLeaders]);
 
   const handleStartBidding = () => {
     setCurrentBidderIndex(0);
@@ -36,7 +57,16 @@ const App = () => {
   };
 
   const handleBid = () => {
+    if (allPlayersAuctioned) return;
+
     let bidAmount = 0;
+    const currentLeaderName = teamLeaders[currentBidderIndex].name;
+
+    if (bidOverPlayers.some((bid) => bid.leaderName === currentLeaderName)) {
+      setCurrentBidderIndex(getNextBidderIndex());
+      return;
+    }
+
     switch (currentPlayerList) {
       case "playersA":
         bidAmount = currentBid + 100;
@@ -58,10 +88,32 @@ const App = () => {
     const updatedLeaders = [...teamLeaders];
     const currentPlayer = data[currentPlayerList][currentPlayerIndex];
     const winningLeader = updatedLeaders[currentBidderIndex];
-    if (winningLeader.points >= currentBid) {
-      winningLeader[currentPlayerList].push(currentPlayer);
-      winningLeader.points -= currentBid;
+    const prevWinner = updatedLeaders[prevBidderIndex];
+
+    if (currentBid === null) {
+      if (prevBidderIndex !== null) {
+        prevWinner[currentPlayerList].push(currentPlayer);
+        switch (currentPlayerList) {
+          case "playersA":
+            prevWinner.points -= 100;
+            break;
+          case "playersB":
+            prevWinner.points -= 50;
+            break;
+          case "playersC":
+            prevWinner.points -= 25;
+            break;
+          default:
+            break;
+        }
+      }
+    } else {
+      if (winningLeader.points >= currentBid) {
+        winningLeader[currentPlayerList].push(currentPlayer);
+        winningLeader.points -= currentBid;
+      }
     }
+
     setCurrentBidderIndex(getNextBidderIndex());
     setCurrentPlayerIndex((prevIndex) => prevIndex + 1);
     setTeamLeaders(updatedLeaders);
@@ -79,8 +131,9 @@ const App = () => {
           : "playersA"
       );
     }
+    setPrevBidderIndex(currentBidderIndex);
     setCurrentBidderIndex(null);
-    clearBidOverPlayers(); // Clear bid over players list
+    clearBidOverPlayers();
   };
 
   useEffect(() => {
@@ -98,38 +151,36 @@ const App = () => {
 
   const handleBidOver = () => {
     if (currentBidderIndex !== null) {
-      const currentPlayerName = teamLeaders[currentBidderIndex].name;
-      const currentLeader = teamLeaders[currentBidderIndex];
-      if (!currentLeader.bidOverForPlayers.includes(currentPlayerName)) {
-        currentLeader.bidOverForPlayers.push(currentPlayerName);
-        setBidOverPlayers((prevBidOverPlayers) => [
-          ...prevBidOverPlayers,
-          { leaderName: currentLeader.name, playerName: currentPlayerName },
-        ]);
-      }
+      const currentPlayerName =
+        data[currentPlayerList][currentPlayerIndex].name;
+      teamLeaders.forEach((leader) => {
+        if (!leader.bidOverForPlayers.includes(currentPlayerName)) {
+          leader.bidOverForPlayers.push(currentPlayerName);
+          setBidOverPlayers((prevBidOverPlayers) => [
+            ...prevBidOverPlayers,
+            { leaderName: leader.name, playerName: currentPlayerName },
+          ]);
+        }
+      });
     }
     setCurrentBidderIndex(getNextBidderIndex());
   };
 
-  const isPlayerBidOver = (playerName) => {
-    return bidOverPlayers.some((bid) => bid.playerName === playerName);
-  };
-
   const getNextBidderIndex = () => {
-    let nextBidderIndex = currentBidderIndex;
-    const currentPlayerName = teamLeaders[currentBidderIndex].name;
+    let nextBidderIndex = currentBidderIndex + 1;
 
     while (true) {
-      nextBidderIndex = (nextBidderIndex + 1) % teamLeaders.length;
+      if (nextBidderIndex >= teamLeaders.length) {
+        nextBidderIndex = 0;
+      }
 
-      if (
-        nextBidderIndex === currentBidderIndex ||
-        !teamLeaders[nextBidderIndex].bidOverForPlayers.includes(
-          currentPlayerName
-        )
-      ) {
+      const currentLeaderName = teamLeaders[nextBidderIndex].name;
+
+      if (!bidOverPlayers.some((bid) => bid.leaderName === currentLeaderName)) {
         break;
       }
+
+      nextBidderIndex++;
     }
 
     return nextBidderIndex;
@@ -139,66 +190,64 @@ const App = () => {
     setBidOverPlayers([]);
   };
 
+  const handleShowPlayerList = (leader) => {
+    setSelectedLeader(leader);
+    setShowDialog(true);
+  };
+
+  const handleClosePlayerList = () => {
+    setShowDialog(false);
+  };
+
+  const handlePending = () => {
+    const currentPlayer = data[currentPlayerList][currentPlayerIndex];
+    setPendingPlayers((prevPendingPlayers) => [
+      ...prevPendingPlayers,
+      currentPlayer,
+    ]);
+    setCurrentPlayerIndex((prevIndex) => prevIndex + 1);
+    setCurrentBidderIndex(null);
+    setCurrentBid(null);
+    setBidOverPlayers([]);
+  };
+
   return (
     <div className="app-container">
       <h1>Auction System</h1>
-      <div className="team-leaders-container">
+      <Grid container spacing={2}>
         {teamLeaders.map((leader) => (
-          <div className="leader-card" key={leader.id}>
-            <h2>{leader.name}</h2>
-            <p>Points: {leader.points}</p>
-            <p>Mentor: {leader.mentors[0]?.name || "None"}</p>
-            <p>Sports Person: {leader.sportsPersons[0]?.name || "None"}</p>
-            <ul className="player-list">
-              {leader[currentPlayerList].map((player, index) => (
-                <li
-                  key={index}
-                  className={isPlayerBidOver(player.name) ? "bid-over" : ""}
-                >
-                  {player.name}
-                </li>
-              ))}
-            </ul>
-          </div>
+          <Grid item xs={4} key={leader.id}>
+            <LeaderCard
+              leader={leader}
+              handleShowPlayerList={handleShowPlayerList}
+            />
+          </Grid>
         ))}
-      </div>
-      <div className="auction-controls">
-        {currentBidderIndex !== null ? (
-          <div>
-            <h3>
-              Current Bidder: {teamLeaders[currentBidderIndex]?.name || "None"}
-            </h3>
-            <p>Current Bid: {currentBid}</p>
-            <button onClick={handleBid}>Bid</button>
-            <button onClick={handleBidSuccess}>Bid Success</button>
-            <button onClick={handleBidOver}>Bid Over</button>
-          </div>
-        ) : (
-          <button onClick={handleStartBidding}>Start Bidding</button>
-        )}
-      </div>
-      <div className="bid-over-players">
-        <h2>Bid Over Players</h2>
-        <ul>
-          {bidOverPlayers.map((bid) => (
-            <li key={`${bid.leaderName}-${bid.playerName}`}>
-              {bid.leaderName} marked {bid.playerName} as Bid Over
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div className="current-player">
-        <h2>Current Player</h2>
-        <div>
-          <p>
-            Name: {data[currentPlayerList][currentPlayerIndex]?.name || "None"}
-          </p>
-          <p>
-            Points:{" "}
-            {data[currentPlayerList][currentPlayerIndex]?.points || "None"}
-          </p>
-        </div>
-      </div>
+      </Grid>
+      <AuctionControls
+        currentBidderIndex={currentBidderIndex}
+        currentBid={currentBid}
+        handleBid={handleBid}
+        handleBidSuccess={handleBidSuccess}
+        handleBidOver={handleBidOver}
+        handleStartBidding={handleStartBidding}
+        handlePending={handlePending}
+        teamLeaders={teamLeaders}
+        pendingPlayers={pendingPlayers}
+      />
+      <BidOverPlayers bidOverPlayers={bidOverPlayers} />
+      <PendingPlayers pendingPlayers={pendingPlayers} />
+      <PlayerListDialog
+        showDialog={showDialog}
+        handleClosePlayerList={handleClosePlayerList}
+        selectedLeader={selectedLeader}
+        currentPlayerList={currentPlayerList}
+      />
+      <CurrentPlayer
+        currentPlayer={data[currentPlayerList][currentPlayerIndex]}
+        currentPlayerList={currentPlayerList}
+      />
+      {allPlayersAuctioned && <p>No players available now</p>}
     </div>
   );
 };
