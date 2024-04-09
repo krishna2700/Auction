@@ -153,17 +153,24 @@ const App = () => {
     if (currentBidderIndex !== null) {
       const currentPlayerName =
         data[currentPlayerList][currentPlayerIndex].name;
-      teamLeaders.forEach((leader) => {
-        if (!leader.bidOverForPlayers.includes(currentPlayerName)) {
-          leader.bidOverForPlayers.push(currentPlayerName);
-          setBidOverPlayers((prevBidOverPlayers) => [
-            ...prevBidOverPlayers,
-            { leaderName: leader.name, playerName: currentPlayerName },
-          ]);
+      const updatedLeaders = teamLeaders.map((leader) => {
+        if (leader.name === teamLeaders[currentBidderIndex].name) {
+          if (!leader.bidOverForPlayers.includes(currentPlayerName)) {
+            return {
+              ...leader,
+              bidOverForPlayers: [
+                ...leader.bidOverForPlayers,
+                currentPlayerName,
+              ],
+            };
+          }
         }
+        return leader;
       });
+
+      setTeamLeaders(updatedLeaders);
+      setCurrentBidderIndex(getNextBidderIndex());
     }
-    setCurrentBidderIndex(getNextBidderIndex());
   };
 
   const getNextBidderIndex = () => {
