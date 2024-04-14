@@ -1,206 +1,199 @@
 import React, { useState, useEffect } from "react";
-import data from "./data.json";
-import "./App.css"; // Import CSS file for styling
+import {
+  Container,
+  Typography,
+  Grid,
+  Card,
+  CardContent,
+  Button,
+  CircularProgress,
+} from "@mui/material";
+import playersData from "./players.json";
 
-const App = () => {
-  const [teamLeaders, setTeamLeaders] = useState([]);
+const initialPoints = 5000;
+
+const AuctionRoom = () => {
+  const [players, setPlayers] = useState([]);
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
-  const [currentBidderIndex, setCurrentBidderIndex] = useState(null);
-  const [currentBid, setCurrentBid] = useState(null);
-  const [currentPlayerList, setCurrentPlayerList] = useState("playersA");
-  const [bidOverPlayers, setBidOverPlayers] = useState([]);
+  const [currentPlayer, setCurrentPlayer] = useState(null);
+  const [currentBid, setCurrentBid] = useState(0);
+  const [biddingCaptain, setBiddingCaptain] = useState(null);
+  const [highestBid, setHighestBid] = useState(0);
+  const [pendingPlayers, setPendingPlayers] = useState([]);
+  const [soldPlayers, setSoldPlayers] = useState([]);
+  const [captains, setCaptains] = useState([
+    { id: 1, name: "Captain 1", points: initialPoints, bid: 0, team: [] },
+    { id: 2, name: "Captain 2", points: initialPoints, bid: 0, team: [] },
+    { id: 3, name: "Captain 3", points: initialPoints, bid: 0, team: [] },
+  ]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    setTeamLeaders(
-      data.teamLeaders.map((leader) => {
-        const randomMentor =
-          data.mentors[Math.floor(Math.random() * data.mentors.length)];
-        const randomSportsPerson =
-          data.sportsPersons[
-            Math.floor(Math.random() * data.sportsPersons.length)
-          ];
-        return {
-          ...leader,
-          mentors: [randomMentor],
-          sportsPersons: [randomSportsPerson],
-          currentBid: null,
-          bidOverForPlayers: [],
-        };
-      })
-    );
+    setLoading(true);
+    // Simulate fetching player data from JSON files
+    setTimeout(() => {
+      setPlayers(
+        playersData.ListC.concat(playersData.ListB, playersData.ListA)
+      );
+      setCurrentPlayer(playersData.ListC[0]);
+      setCurrentBid(playersData.ListC[0].basePrice);
+      setLoading(false);
+    }, 1000);
   }, []);
 
-  const handleStartBidding = () => {
-    setCurrentBidderIndex(0);
-    setCurrentBid(null);
-  };
-
-  const handleBid = () => {
-    let bidAmount = 0;
-    switch (currentPlayerList) {
-      case "playersA":
-        bidAmount = currentBid + 100;
-        break;
-      case "playersB":
-        bidAmount = currentBid + 50;
-        break;
-      case "playersC":
-        bidAmount = currentBid + 25;
-        break;
-      default:
-        break;
-    }
-    setCurrentBid(bidAmount);
-    setCurrentBidderIndex(getNextBidderIndex());
-  };
-
-  const handleBidSuccess = () => {
-    const updatedLeaders = [...teamLeaders];
-    const currentPlayer = data[currentPlayerList][currentPlayerIndex];
-    const winningLeader = updatedLeaders[currentBidderIndex];
-    if (winningLeader.points >= currentBid) {
-      winningLeader[currentPlayerList].push(currentPlayer);
-      winningLeader.points -= currentBid;
-    }
-    setCurrentBidderIndex(getNextBidderIndex());
-    setCurrentPlayerIndex((prevIndex) => prevIndex + 1);
-    setTeamLeaders(updatedLeaders);
-    setCurrentBid(null);
-
-    if (currentPlayerIndex + 1 >= data[currentPlayerList].length) {
-      setCurrentBid(null);
-      setCurrentBidderIndex(null);
-      setCurrentPlayerIndex(0);
-      setCurrentPlayerList(
-        currentPlayerList === "playersA"
-          ? "playersB"
-          : currentPlayerList === "playersB"
-          ? "playersC"
-          : "playersA"
-      );
-    }
-    setCurrentBidderIndex(null);
-    clearBidOverPlayers(); // Clear bid over players list
-  };
-
   useEffect(() => {
-    if (currentPlayerIndex >= data[currentPlayerList].length) {
-      setCurrentPlayerIndex(0);
-      setCurrentPlayerList(
-        currentPlayerList === "playersA"
-          ? "playersB"
-          : currentPlayerList === "playersB"
-          ? "playersC"
-          : "playersA"
-      );
+    if (currentPlayer) {
+      setCurrentBid(currentPlayer.basePrice);
+      setBiddingCaptain(null);
     }
-  }, [currentPlayerIndex, currentPlayerList]);
+  }, [currentPlayer]);
+
+  const handleBid = (captainId) => {
+    const newBid = currentBid + currentPlayer.basePrice;
+    setCurrentBid(newBid);
+    const updatedCaptains = captains.map((captain) =>
+      captain.id === captainId ? { ...captain, bid: newBid } : captain
+    );
+    setCaptains(updatedCaptains);
+    setBiddingCaptain(captainId);
+    setHighestBid(newBid);
+  };
 
   const handleBidOver = () => {
-    if (currentBidderIndex !== null) {
-      const currentPlayerName = teamLeaders[currentBidderIndex].name;
-      const currentLeader = teamLeaders[currentBidderIndex];
-      if (!currentLeader.bidOverForPlayers.includes(currentPlayerName)) {
-        currentLeader.bidOverForPlayers.push(currentPlayerName);
-        setBidOverPlayers((prevBidOverPlayers) => [
-          ...prevBidOverPlayers,
-          { leaderName: currentLeader.name, playerName: currentPlayerName },
-        ]);
-      }
+    const winningCaptain = captains.find(
+      (captain) => captain.bid === highestBid
+    );
+    const winningPlayer = players.find(
+      (player) => player.id === currentPlayer.id
+    );
+    setSoldPlayers([...soldPlayers, winningPlayer]);
+    winningCaptain.points -= highestBid;
+    winningCaptain.team.push(winningPlayer);
+    const updatedPendingPlayers = pendingPlayers.filter(
+      (player) => player.id !== winningPlayer.id
+    );
+    setPendingPlayers(updatedPendingPlayers);
+    setCurrentPlayerIndex(currentPlayerIndex + 1);
+    resetBids();
+  };
+
+  const resetBids = () => {
+    const updatedCaptains = captains.map((captain) => ({
+      ...captain,
+      bid: 0,
+    }));
+    setCaptains(updatedCaptains);
+    setBiddingCaptain(null);
+    setHighestBid(0);
+    if (currentPlayerIndex < players.length) {
+      setCurrentPlayer(players[currentPlayerIndex]);
+      setCurrentBid(players[currentPlayerIndex].basePrice);
     }
-    setCurrentBidderIndex(getNextBidderIndex());
-  };
-
-  const isPlayerBidOver = (playerName) => {
-    return bidOverPlayers.some((bid) => bid.playerName === playerName);
-  };
-
-  const getNextBidderIndex = () => {
-    let nextBidderIndex = currentBidderIndex;
-    const currentPlayerName = teamLeaders[currentBidderIndex].name;
-
-    while (true) {
-      nextBidderIndex = (nextBidderIndex + 1) % teamLeaders.length;
-
-      if (
-        nextBidderIndex === currentBidderIndex ||
-        !teamLeaders[nextBidderIndex].bidOverForPlayers.includes(
-          currentPlayerName
-        )
-      ) {
-        break;
-      }
-    }
-
-    return nextBidderIndex;
-  };
-
-  const clearBidOverPlayers = () => {
-    setBidOverPlayers([]);
   };
 
   return (
-    <div className="app-container">
-      <h1>Auction System</h1>
-      <div className="team-leaders-container">
-        {teamLeaders.map((leader) => (
-          <div className="leader-card" key={leader.id}>
-            <h2>{leader.name}</h2>
-            <p>Points: {leader.points}</p>
-            <p>Mentor: {leader.mentors[0]?.name || "None"}</p>
-            <p>Sports Person: {leader.sportsPersons[0]?.name || "None"}</p>
-            <ul className="player-list">
-              {leader[currentPlayerList].map((player, index) => (
-                <li
-                  key={index}
-                  className={isPlayerBidOver(player.name) ? "bid-over" : ""}
-                >
-                  {player.name}
-                </li>
+    <Container>
+      <Typography variant="h1" gutterBottom>
+        Auction Room
+      </Typography>
+      {loading ? (
+        <CircularProgress />
+      ) : (
+        <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <Card variant="outlined">
+              <CardContent>
+                <Typography variant="h5" gutterBottom>
+                  Current Player: {currentPlayer && currentPlayer.name}
+                </Typography>
+                {currentPlayer && (
+                  <>
+                    <Typography variant="body1" gutterBottom>
+                      Base Price: {currentPlayer.basePrice}
+                    </Typography>
+                    <Typography variant="body1" gutterBottom>
+                      Current Bid: {currentBid}
+                    </Typography>
+                    <Typography variant="body1" gutterBottom>
+                      Bidding Captain:{" "}
+                      {biddingCaptain ? captains[biddingCaptain - 1].name : "-"}
+                    </Typography>
+                    {captains.map((captain) => (
+                      <div key={captain.id}>
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          onClick={() => handleBid(captain.id)}
+                          disabled={captain.bid >= captains[0].points}
+                        >
+                          {captain.name} Bid: {captain.bid}
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      variant="contained"
+                      color="secondary"
+                      onClick={handleBidOver}
+                      disabled={!biddingCaptain}
+                    >
+                      Bid Over
+                    </Button>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12}>
+            <Typography variant="h2" gutterBottom>
+              Pending Players
+            </Typography>
+            <ul>
+              {pendingPlayers.map((player) => (
+                <li key={player.id}>{player.name}</li>
               ))}
             </ul>
-          </div>
-        ))}
-      </div>
-      <div className="auction-controls">
-        {currentBidderIndex !== null ? (
-          <div>
-            <h3>
-              Current Bidder: {teamLeaders[currentBidderIndex]?.name || "None"}
-            </h3>
-            <p>Current Bid: {currentBid}</p>
-            <button onClick={handleBid}>Bid</button>
-            <button onClick={handleBidSuccess}>Bid Success</button>
-            <button onClick={handleBidOver}>Bid Over</button>
-          </div>
-        ) : (
-          <button onClick={handleStartBidding}>Start Bidding</button>
-        )}
-      </div>
-      <div className="bid-over-players">
-        <h2>Bid Over Players</h2>
-        <ul>
-          {bidOverPlayers.map((bid) => (
-            <li key={`${bid.leaderName}-${bid.playerName}`}>
-              {bid.leaderName} marked {bid.playerName} as Bid Over
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div className="current-player">
-        <h2>Current Player</h2>
-        <div>
-          <p>
-            Name: {data[currentPlayerList][currentPlayerIndex]?.name || "None"}
-          </p>
-          <p>
-            Points:{" "}
-            {data[currentPlayerList][currentPlayerIndex]?.points || "None"}
-          </p>
-        </div>
-      </div>
-    </div>
+          </Grid>
+          <Grid item xs={12}>
+            <Typography variant="h2" gutterBottom>
+              Sold Players
+            </Typography>
+            <ul>
+              {soldPlayers.map((player) => (
+                <li key={player.id}>{player.name}</li>
+              ))}
+            </ul>
+          </Grid>
+          <Grid item xs={12}>
+            <Typography variant="h2" gutterBottom>
+              Captains' Teams
+            </Typography>
+            {captains.map((captain) => (
+              <div key={captain.id}>
+                <Typography variant="h5" gutterBottom>
+                  {captain.name}'s Team
+                </Typography>
+                <ul>
+                  {captain.team.map((player) => (
+                    <li key={player.id}>{player.name}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </Grid>
+          <Grid item xs={12}>
+            <Typography variant="h2" gutterBottom>
+              Captains' Points
+            </Typography>
+            <ul>
+              {captains.map((captain) => (
+                <li key={captain.id}>{`${captain.name}: ${captain.points}`}</li>
+              ))}
+            </ul>
+          </Grid>
+        </Grid>
+      )}
+    </Container>
   );
 };
 
-export default App;
+export default AuctionRoom;
